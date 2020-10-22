@@ -33,7 +33,21 @@
 #ifndef SHEREDOM_UBENCH_H_INCLUDED
 #define SHEREDOM_UBENCH_H_INCLUDED
 
-#ifdef _MSC_VER
+// clang-cl.exe has them both defined
+// thus it is not enugh to use _MSC_VER only
+#ifdef _WIN32 
+// #ifndef __clang__
+#define UBENCH_IS_WIN 
+// #endif
+#endif
+
+#ifdef _MSC_VER 
+#ifdef __clang__
+#define UBENCH_IS_CLANG_CL 
+#endif
+#endif
+
+#ifdef UBENCH_IS_WIN
 /*
    Disable warning about not inlining 'inline' functions.
    TODO: We'll fix this later by not using fprintf within our macros, and
@@ -49,7 +63,7 @@
 #pragma warning(push, 1)
 #endif
 
-#if defined(_MSC_VER)
+#if defined(UBENCH_IS_WIN)
 typedef __int64 ubench_int64_t;
 typedef unsigned __int64 ubench_uint64_t;
 #else
@@ -64,11 +78,11 @@ typedef uint64_t ubench_uint64_t;
 #include <stdlib.h>
 #include <string.h>
 
-#if defined(_MSC_VER)
+#if defined(UBENCH_IS_WIN)
 #pragma warning(pop)
 #endif
 
-#if defined(_MSC_VER)
+#if defined(UBENCH_IS_WIN)
 #if defined(_M_IX86)
 #define _X86_
 #endif
@@ -121,13 +135,13 @@ typedef uint64_t ubench_uint64_t;
 #define UBENCH_NOEXCEPT
 #endif
 
-#if defined(__cplusplus) && defined(_MSC_VER)
+#if defined(__cplusplus) && defined(UBENCH_IS_WIN)
 #define UBENCH_NOTHROW __declspec(nothrow)
 #else
 #define UBENCH_NOTHROW
 #endif
 
-#if defined(_MSC_VER)
+#if defined(UBENCH_IS_WIN)
 #define UBENCH_PRId64 "I64d"
 #define UBENCH_PRIu64 "I64u"
 #define UBENCH_INLINE __forceinline
@@ -146,6 +160,15 @@ typedef uint64_t ubench_uint64_t;
   UBENCH_C_FUNC __declspec(allocate(".CRT$XCU")) void(__cdecl * f##_)(void) =  \
       f;                                                                       \
   static void __cdecl f(void)
+
+// clang on win aka clang-cl.exe 
+#ifdef __clang__
+#undef UBENCH_INITIALIZER
+#define UBENCH_INITIALIZER(f)                                                  \
+  static void f(void) __attribute__((constructor));                            \
+  static void f(void)
+#endif // __clang__
+
 #else
 #if defined(__linux__)
 #if defined(__clang__)
@@ -188,7 +211,7 @@ typedef uint64_t ubench_uint64_t;
 #define UBENCH_NULL 0
 #endif
 
-#ifdef _MSC_VER
+#ifdef UBENCH_IS_WIN
 /*
     io.h contains definitions for some structures with natural padding. This is
     uninteresting, but for some reason MSVC's behaviour is to warn about
@@ -205,7 +228,7 @@ typedef uint64_t ubench_uint64_t;
 #endif
 
 static UBENCH_INLINE ubench_int64_t ubench_ns(void) {
-#ifdef _MSC_VER
+#ifdef UBENCH_IS_WIN
   LARGE_INTEGER counter;
   LARGE_INTEGER frequency;
   QueryPerformanceCounter(&counter);
@@ -244,13 +267,13 @@ struct ubench_state_s {
 /* extern to the global state ubench needs to execute */
 UBENCH_EXTERN struct ubench_state_s ubench_state;
 
-#if defined(_MSC_VER)
+#if defined(UBENCH_IS_WIN)
 #define UBENCH_WEAK __forceinline
 #else
 #define UBENCH_WEAK __attribute__((weak))
 #endif
 
-#if defined(_MSC_VER)
+#if defined(UBENCH_IS_WIN)
 #define UBENCH_UNUSED
 #else
 #define UBENCH_UNUSED __attribute__((unused))
@@ -270,7 +293,7 @@ UBENCH_EXTERN struct ubench_state_s ubench_state;
 #pragma clang diagnostic pop
 #endif
 
-#ifdef _MSC_VER
+#ifdef UBENCH_IS_WIN
 #define UBENCH_SNPRINTF(BUFFER, N, ...) _snprintf_s(BUFFER, N, N, __VA_ARGS__)
 #else
 #ifdef __clang__
@@ -438,7 +461,7 @@ static UBENCH_INLINE int ubench_strncmp(const char *a, const char *b,
 
 static UBENCH_INLINE FILE *ubench_fopen(const char *filename,
                                         const char *mode) {
-#ifdef _MSC_VER
+#ifdef UBENCH_IS_WIN
   FILE *file;
   if (0 == fopen_s(&file, filename, mode)) {
     return file;
@@ -704,7 +727,7 @@ UBENCH_C_FUNC UBENCH_NOINLINE void ubench_do_nothing(void *const);
     asm volatile("" : : "r,m"(ptr) : "memory");                                \
     _Pragma("clang diagnostic pop");                                           \
   }
-#elif defined(_MSC_VER)
+#elif defined(UBENCH_IS_WIN)
 #define UBENCH_DECLARE_DO_NOTHING()                                            \
   void ubench_do_nothing(void *ptr) {                                          \
     (void)ptr;                                                                 \
