@@ -484,25 +484,30 @@ int ubench_main(int argc, const char *const argv[]) {
 
   enum colours { RESET, GREEN, RED };
 
-  const int use_colours = UBENCH_COLOUR_OUTPUT();
-  const char *colours[] = {"\033[0m", "\033[32m", "\033[31m"};
-  if (!use_colours) {
-    for (index = 0; index < sizeof colours / sizeof colours[0]; index++) {
-      colours[index] = "";
-    }
+  // const int use_colours = UBENCH_COLOUR_OUTPUT();
+  static char *colours[] = {(char *)"\033[0m", (char *)"\033[32m", (char *)"\033[31m"};
+
+  if (!UBENCH_COLOUR_OUTPUT()) {
+    static const char * no_colurs[] = { "", "", "" };
+        memcpy(colours, no_colurs, 3 * sizeof(char *) );
   }
+
+  // static const char *const FOPEN_MODE = "w+";
+  static const char *const FOPEN_MODE = "a+";
+
+  /* Informational switches */
+  #define  HELP_STR  "--help"  
+  #define  LIST_STR  "--list-benchmarks"  
+  /* Benchmark config switches */
+  #define  FILTER_STR  "--filter="  
+  #define  OUTPUT_STR  "--output="  
+  #define  CONFIDENCE_STR  "--confidence="  
+  #define  SLEN(S) ( sizeof(S) - 1)
 
   /* loop through all arguments looking for our options */
   for (index = 1; index < UBENCH_CAST(size_t, argc); index++) {
-    /* Informational switches */
-    const char help_str[] = "--help";
-    const char list_str[] = "--list-benchmarks";
-    /* Benchmark config switches */
-    const char filter_str[] = "--filter=";
-    const char output_str[] = "--output=";
-    const char confidence_str[] = "--confidence=";
 
-    if (0 == ubench_strncmp(argv[index], help_str, strlen(help_str))) {
+    if (0 == ubench_strncmp(argv[index], HELP_STR, SLEN(HELP_STR))) {
       printf("ubench.h - the single file benchmarking solution for C/C++!\n"
              "Command line Options:\n");
       printf("  --help                    Show this message and exit.\n"
@@ -514,25 +519,23 @@ int ubench_main(int argc, const char *const argv[]) {
              "  --confidence=<confidence> Change the confidence cut-off for a "
              "failed test. Defaults to 2.5%%\n");
       goto cleanup;
-    } else if (0 ==
-               ubench_strncmp(argv[index], filter_str, strlen(filter_str))) {
+    } else if (0 == ubench_strncmp(argv[index], FILTER_STR, SLEN(FILTER_STR))) {
       /* user wants to filter what benchmarks run! */
-      filter = argv[index] + strlen(filter_str);
-    } else if (0 ==
-               ubench_strncmp(argv[index], output_str, strlen(output_str))) {
+      filter = argv[index] + SLEN(FILTER_STR);
+    } else if (0 == ubench_strncmp(argv[index], OUTPUT_STR, SLEN(OUTPUT_STR))) {
       ubench_state.output =
-          ubench_fopen(argv[index] + strlen(output_str), "w+");
-    } else if (0 == ubench_strncmp(argv[index], list_str, strlen(list_str))) {
+          ubench_fopen(argv[index] + SLEN(OUTPUT_STR), FOPEN_MODE);
+    } else if (0 == ubench_strncmp(argv[index], LIST_STR, SLEN(LIST_STR))) {
       for (index = 0; index < ubench_state.benchmarks_length; index++) {
         UBENCH_PRINTF("%s\n", ubench_state.benchmarks[index].name);
       }
 
       /* when printing the benchmark list, don't actually run the benchmarks */
       goto cleanup;
-    } else if (0 == ubench_strncmp(argv[index], confidence_str,
-                                   strlen(confidence_str))) {
+    } else if (0 == ubench_strncmp(argv[index], CONFIDENCE_STR,
+                                   SLEN(CONFIDENCE_STR))) {
       /* user wants to specify a different confidence */
-      ubench_state.confidence = atof(argv[index] + strlen(confidence_str));
+      ubench_state.confidence = atof(argv[index] + SLEN(CONFIDENCE_STR));
 
       /* must be between 0 and 100 */
       if ((ubench_state.confidence < 0) || (ubench_state.confidence > 100)) {
@@ -542,7 +545,14 @@ int ubench_main(int argc, const char *const argv[]) {
         goto cleanup;
       }
     }
-  }
+  } // for()
+
+#undef HELP_STR
+#undef LIST_STR
+#undef FILTER_STR 
+#undef OUTPUT_STR 
+#undef CONFIDENCE_STR 
+#undef SLEN
 
   for (index = 0; index < ubench_state.benchmarks_length; index++) {
     if (ubench_should_filter(filter, ubench_state.benchmarks[index].name)) {
@@ -571,8 +581,8 @@ int ubench_main(int argc, const char *const argv[]) {
 #define UBENCH_MIN_ITERATIONS 10
 #define UBENCH_MAX_ITERATIONS 500
     ubench_int64_t iterations = 10;
-    const ubench_int64_t max_iterations = UBENCH_MAX_ITERATIONS;
-    const ubench_int64_t min_iterations = UBENCH_MIN_ITERATIONS;
+    static const ubench_int64_t max_iterations = UBENCH_MAX_ITERATIONS;
+    static const ubench_int64_t min_iterations = UBENCH_MIN_ITERATIONS;
     ubench_int64_t ns[UBENCH_MAX_ITERATIONS];
 #undef UBENCH_MAX_ITERATIONS
 #undef UBENCH_MIN_ITERATIONS
