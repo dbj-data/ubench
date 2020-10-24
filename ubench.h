@@ -472,8 +472,10 @@ static UBENCH_INLINE FILE *ubench_fopen(const char *filename,
   return fopen(filename, mode);
 #endif
 }
-
-UBENCH_WEAK int ubench_main(int argc, const char *const argv[]);
+#ifdef NDEBUG
+UBENCH_WEAK 
+#endif
+int ubench_main(int argc, const char *const argv[]);
 int ubench_main(int argc, const char *const argv[]) {
   ubench_uint64_t failed = 0;
   size_t index = 0;
@@ -492,8 +494,8 @@ int ubench_main(int argc, const char *const argv[]) {
         memcpy(colours, no_colurs, 3 * sizeof(char *) );
   }
 
-  // static const char *const FOPEN_MODE = "w+";
-  static const char *const FOPEN_MODE = "a+";
+  static const char *const FOPEN_MODE = "w+";
+  // static const char *const FOPEN_MODE = "a+";
 
   /* Informational switches */
   #define  HELP_STR  "--help"  
@@ -571,19 +573,22 @@ int ubench_main(int argc, const char *const argv[]) {
             "name, mean (ns), stddev (%%), confidence (%%)\n");
   }
 
-  for (index = 0; index < ubench_state.benchmarks_length; index++) {
+#define UBENCH_MIN_ITERATIONS 10
+#define UBENCH_MAX_ITERATIONS 500
+  static const ubench_int64_t max_iterations = UBENCH_MAX_ITERATIONS;
+  static const ubench_int64_t min_iterations = UBENCH_MIN_ITERATIONS;
+
+for (index = 0; index < ubench_state.benchmarks_length; index++) 
+{
     int result = 1;
     size_t mndex = 0;
     ubench_int64_t best_avg_ns = 0;
     double best_deviation = 0;
     double best_confidence = 101.0;
 
-#define UBENCH_MIN_ITERATIONS 10
-#define UBENCH_MAX_ITERATIONS 500
-    ubench_int64_t iterations = 10;
-    static const ubench_int64_t max_iterations = UBENCH_MAX_ITERATIONS;
-    static const ubench_int64_t min_iterations = UBENCH_MIN_ITERATIONS;
-    ubench_int64_t ns[UBENCH_MAX_ITERATIONS];
+  ubench_int64_t iterations = 10;
+    ubench_int64_t ns[UBENCH_MAX_ITERATIONS] = {0};
+
 #undef UBENCH_MAX_ITERATIONS
 #undef UBENCH_MIN_ITERATIONS
 
