@@ -472,9 +472,8 @@ static UBENCH_INLINE FILE *ubench_fopen(const char *filename,
   return fopen(filename, mode);
 #endif
 }
-#ifdef NDEBUG
+
 UBENCH_WEAK 
-#endif
 int ubench_main(int argc, const char *const argv[]);
 int ubench_main(int argc, const char *const argv[]) {
   ubench_uint64_t failed = 0;
