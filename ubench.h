@@ -211,7 +211,16 @@ typedef uint64_t ubench_uint64_t;
 #define UBENCH_NULL 0
 #endif
 
+#if defined(UBENCH_IS_WIN)
+#define UBENCH_WEAK __forceinline
+#else
+#define UBENCH_WEAK __attribute__((weak))
+#endif
+
 #ifdef UBENCH_IS_WIN
+
+// WIN 8.1 and bellow does not have this header
+#include <VersionHelpers.h>
 /*
     io.h contains definitions for some structures with natural padding. This is
     uninteresting, but for some reason MSVC's behaviour is to warn about
@@ -221,7 +230,18 @@ typedef uint64_t ubench_uint64_t;
 #pragma warning(push, 1)
 #include <io.h>
 #pragma warning(pop)
-#define UBENCH_COLOUR_OUTPUT() (_isatty(_fileno(stdout)))
+
+UBENCH_C_FUNC
+UBENCH_WEAK int UBENCH_COLOUR_OUTPUT(void)
+{
+    if (IsWindows10OrGreater())
+    {
+       return ( (_isatty(_fileno(stdout))) ? 1 : 0 );
+    } else {
+      return 0;
+    }
+}
+
 #else
 #include <unistd.h>
 #define UBENCH_COLOUR_OUTPUT() (isatty(STDOUT_FILENO))
@@ -266,12 +286,6 @@ struct ubench_state_s {
 
 /* extern to the global state ubench needs to execute */
 UBENCH_EXTERN struct ubench_state_s ubench_state;
-
-#if defined(UBENCH_IS_WIN)
-#define UBENCH_WEAK __forceinline
-#else
-#define UBENCH_WEAK __attribute__((weak))
-#endif
 
 #if defined(UBENCH_IS_WIN)
 #define UBENCH_UNUSED
