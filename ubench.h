@@ -33,6 +33,8 @@
 #ifndef SHEREDOM_UBENCH_H_INCLUDED
 #define SHEREDOM_UBENCH_H_INCLUDED
 
+#include <stdbool.h>
+
 // clang-cl.exe has them both defined
 // thus it is not enugh to use _MSC_VER only
 #ifdef _WIN32 
@@ -219,8 +221,10 @@ typedef uint64_t ubench_uint64_t;
 
 #ifdef UBENCH_IS_WIN
 
-// WIN 8.1 and bellow does not have this header
-#include <VersionHelpers.h>
+/*
+trust me,this is the easy way
+*/
+#include "win_vt100_user.h"
 /*
     io.h contains definitions for some structures with natural padding. This is
     uninteresting, but for some reason MSVC's behaviour is to warn about
@@ -231,14 +235,14 @@ typedef uint64_t ubench_uint64_t;
 #include <io.h>
 #pragma warning(pop)
 
-UBENCH_C_FUNC
-UBENCH_WEAK int UBENCH_COLOUR_OUTPUT(void)
+//UBENCH_C_FUNC UBENCH_WEAK
+inline BOOL UBENCH_COLOUR_OUTPUT(void)
 {
-    if (IsWindows10OrGreater())
+  if ( win_enable_vt_100_and_unicode () )
     {
-       return ( (_isatty(_fileno(stdout))) ? 1 : 0 );
+    return ((_isatty(_fileno(stdout))) ? TRUE : FALSE );
     } else {
-      return 0;
+      return FALSE;
     }
 }
 
@@ -487,9 +491,9 @@ static UBENCH_INLINE FILE *ubench_fopen(const char *filename,
 #endif
 }
 
-UBENCH_WEAK 
+// UBENCH_WEAK 
 int ubench_main(int argc, const char *const argv[]);
-int ubench_main(int argc, const char *const argv[]) {
+inline int ubench_main(int argc, const char *const argv[]) {
   ubench_uint64_t failed = 0;
   size_t index = 0;
   size_t *failed_benchmarks = UBENCH_NULL;
@@ -502,7 +506,7 @@ int ubench_main(int argc, const char *const argv[]) {
   // const int use_colours = UBENCH_COLOUR_OUTPUT();
   static char *colours[] = {(char *)"\033[0m", (char *)"\033[32m", (char *)"\033[31m"};
 
-  if (!UBENCH_COLOUR_OUTPUT()) {
+  if ( FALSE == UBENCH_COLOUR_OUTPUT()) {
     static const char * no_colurs[] = { "", "", "" };
         memcpy(colours, no_colurs, 3 * sizeof(char *) );
   }
