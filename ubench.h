@@ -221,10 +221,8 @@ typedef uint64_t ubench_uint64_t;
 
 #ifdef UBENCH_IS_WIN
 
-/*
-trust me,this is the easy way
-*/
-#include "win_vt100_user.h"
+/* trust me,this is the easy way */
+#include <winnt.h>
 /*
     io.h contains definitions for some structures with natural padding. This is
     uninteresting, but for some reason MSVC's behaviour is to warn about
@@ -235,15 +233,15 @@ trust me,this is the easy way
 #include <io.h>
 #pragma warning(pop)
 
-//UBENCH_C_FUNC UBENCH_WEAK
+UBENCH_C_FUNC 
 inline BOOL UBENCH_COLOUR_OUTPUT(void)
 {
-  if ( win_enable_vt_100_and_unicode () )
-    {
+// Required WIN10 build number has to be 10586 or greater
+#ifdef _WIN32_WINNT_WIN10 // ! _WIN32_WINNT_WIN10
     return ((_isatty(_fileno(stdout))) ? TRUE : FALSE );
-    } else {
+#else // ! _WIN32_WINNT_WIN10
       return FALSE;
-    }
+#endif // ! _WIN32_WINNT_WIN10
 }
 
 #else
