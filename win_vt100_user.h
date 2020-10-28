@@ -9,11 +9,7 @@
 #endif
 
 #undef DBJ_PERROR
-#ifdef _DEBUG
 #define DBJ_PERROR (perror(__FILE__ " # " _CRT_STRINGIZE(__LINE__)))
-#else
-#define DBJ_PERROR
-#endif // _DEBUG
 
 #include <assert.h>
 #include <stdio.h>
@@ -35,15 +31,23 @@
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 
-#ifdef _WIN32_WINNT_WIN10
+#ifndef _WIN32_WINNT_WIN10 // ! _WIN32_WINNT_WIN10
+#error Required WIN10 build number has to be 10586 or greater
+#endif // ! _WIN32_WINNT_WIN10
 /*
 current machine may or may not  be on WIN10 where VT100 ESC codes are
 *supposed to be* on by default, Sigh ...
 
-Reuired WIN10 build number is 10586 or greater
-
+Required WIN10 build number is 10586 or greater
 to dance with exact win version please proceed here:
 https://docs.microsoft.com/en-us/windows/win32/sysinfo/verifying-the-system-version
+but please be aware that is semi-officialy abandoned method. it may or may not work.
+
+instead you can use the method bellow. if it returns false no VT100 colours.
+WARNING: this will not exit the app *only* if app is started in WIN32 CONSOLE
+Example: if running from git bash on win this will exit the app
+if app output is redirected to file, this will also fail.
+at runtime.
 */
 
 #ifndef ENABLE_VIRTUAL_TERMINAL_PROCESSING
@@ -99,9 +103,14 @@ inline bool win_enable_vt_100_and_unicode() {
 }
 
 /*
-vs standard immensely complex method for enumerating fonts using win32 api in
-here you need to send exact font name ... which actually is easy to find, just
-open your cmd.exe and go to properties
+Where is the font_name coming from?
+
+vs win32 immensely complex method for enumerating fonts, font names are easy to find, 
+just open your cmd.exe and go to properties; or if you like to be exact find them here:
+ https://docs.microsoft.com/en-us/typography/fonts/windows_10_font_list
+
+ font_height_ if 0 will not be changed, other than that it can be any number
+ between 7 and 145. That is pixels.
 */
 inline bool win_set_console_font(wchar_t *font_name,
                                  SHORT font_height_ /*= SHORT(0)*/) {
@@ -146,6 +155,3 @@ inline bool win_set_console_font(wchar_t *font_name,
 } // "C"
 #endif // __cplusplus
 
-#else
-#error Reuired WIN10 build number has to be 10586 or greater
-#endif // _WIN32_WINNT_WIN10
