@@ -222,6 +222,9 @@ typedef uint64_t ubench_uint64_t;
 
 #ifdef UBENCH_IS_WIN
 
+#if ! ( _WIN32_WINNT >= _WIN32_WINNT_WIN10 )
+#error UBENCH Windows build requires /DWINVER=0x0A00 /D_WIN32_WINNT=0x0A00
+#endif
 
 /* trust me,this is the easy way */
 #include <sdkddkver.h>
@@ -238,7 +241,12 @@ typedef uint64_t ubench_uint64_t;
 UBENCH_C_FUNC 
 inline BOOL UBENCH_COLOUR_OUTPUT(void)
 {
-// Required WIN10 build number has to be 10586 or greater
+  // this is ugly hack that results in 
+  // cmd.exe being able to tranform
+  // VT100 codes into colours
+  system(" ");
+// this will work only if compiler command line had
+// /DWINVER=0x0A00 /D_WIN32_WINNT=0x0A00
 #if ( _WIN32_WINNT >= _WIN32_WINNT_WIN10 )
     return ((_isatty(_fileno(stdout))) ? TRUE : FALSE );
 #else // ! _WIN32_WINNT_WIN10
