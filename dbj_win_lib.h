@@ -88,7 +88,7 @@ inline osinfo get_win_version(void) {
 #undef DBJ_STATUS_SUCCESS
 
 #define IS_OS_INFO_EMPTY(info_)                                                \
-  (0 == info_.size_info_ == info_.major == info_.minor)
+  (0 ==  info_.major)
 
 /*
 return true if Windows version is greater than or equal to the specified number
@@ -119,6 +119,8 @@ inline bool is_win_ver_or_greater(WORD major_ver, WORD minor_ver,
     return true;
   return false;
 }
+
+#undef IS_OS_INFO_EMPTY
 
 /*
 current machine may or may not  be on WIN10 where VT100 ESC codes are
