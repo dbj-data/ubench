@@ -1,15 +1,17 @@
 # DBJDBJ FORK
 
-Win cmd colurs are (realisticaly) supported for Windows 10 onwards. If you run Windows console app using ubench.h on e.g. Windows 7 you will see VT100 escape codes instead of colours. 
+## Intermediary measure 
 
-To avoid that, on your windows compiler command line please make sure to add
-
+Compiler command line must also contain this:
 ```
 /DWINVER=0x0A00
 /D_WIN32_WINNT=0x0A00
 ```
+> This is mandatory for Windows builds using ubench.h from this fork.
 
-That will designate  WIN10 as the minimum OS supported. Recompile. You will now see console colours only on WIN10. 
+Win cmd colurs are (realisticaly) supported for Windows 10 onwards. We made sure ubench.h builds require WIN10 or better. You will now see console colours only on WIN10. 
+
+But. The same exe if run on Win7 would again not show colours but escape codes mixed with text. The ulitmates solution is to check Windows version at runtime. That is on the roadmap.
 
 What could possibly go wrong? &trade; :wink:
 

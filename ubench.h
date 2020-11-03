@@ -37,20 +37,25 @@
 
 // clang-cl.exe has them both defined
 // thus it is not enugh to use _MSC_VER only
-#ifdef _WIN32 
+#ifdef _WIN32
 // #ifndef __clang__
-#define UBENCH_IS_WIN 
+#define UBENCH_IS_WIN
 // #endif
 
 #endif
 
-#ifdef _MSC_VER 
+#ifdef _MSC_VER
 #ifdef __clang__
-#define UBENCH_IS_CLANG_CL 
+#define UBENCH_IS_CLANG_CL
 #endif
 #endif
 
 #ifdef UBENCH_IS_WIN
+
+#if !(_WIN32_WINNT >= _WIN32_WINNT_WIN10)
+#error Windows build using UBENCH, requires /DWINVER=0x0A00 /D_WIN32_WINNT=0x0A00
+#endif
+
 /*
    Disable warning about not inlining 'inline' functions.
    TODO: We'll fix this later by not using fprintf within our macros, and
@@ -164,7 +169,7 @@ typedef uint64_t ubench_uint64_t;
       f;                                                                       \
   static void __cdecl f(void)
 
-// clang on win aka clang-cl.exe 
+// clang on win aka clang-cl.exe
 #ifdef __clang__
 #undef UBENCH_INITIALIZER
 #define UBENCH_INITIALIZER(f)                                                  \
@@ -222,12 +227,10 @@ typedef uint64_t ubench_uint64_t;
 
 #ifdef UBENCH_IS_WIN
 
-#if ! ( _WIN32_WINNT >= _WIN32_WINNT_WIN10 )
-#error UBENCH Windows build requires /DWINVER=0x0A00 /D_WIN32_WINNT=0x0A00
-#endif
-
-/* trust me,this is the easy way */
-#include <sdkddkver.h>
+/*
+we are checking the windows version at run time
+*/
+#include "dbj_win_lib.h"
 /*
     io.h contains definitions for some structures with natural padding. This is
     uninteresting, but for some reason MSVC's behaviour is to warn about
@@ -238,20 +241,22 @@ typedef uint64_t ubench_uint64_t;
 #include <io.h>
 #pragma warning(pop)
 
-UBENCH_C_FUNC 
-inline BOOL UBENCH_COLOUR_OUTPUT(void)
-{
-  // this is ugly hack that results in 
-  // cmd.exe being able to tranform
+UBENCH_C_FUNC
+inline BOOL UBENCH_COLOUR_OUTPUT(void) {
+  // this is ugly hack that results in
+  // cmd.exe being able to transform
   // VT100 codes into colours
   system(" ");
-// this will work only if compiler command line had
-// /DWINVER=0x0A00 /D_WIN32_WINNT=0x0A00
-#if ( _WIN32_WINNT >= _WIN32_WINNT_WIN10 )
-    return ((_isatty(_fileno(stdout))) ? TRUE : FALSE );
-#else // ! _WIN32_WINNT_WIN10
-      return FALSE;
-#endif // ! _WIN32_WINNT_WIN10
+  // if the Windows version is equal to or
+  // greater than 10.0.14393 then ENABLE_VIRTUAL_TERMINAL_PROCESSING is
+  // supported.
+  if (is_win_ver_or_greater(10,0,14393)) {
+      // if stdout is active 
+      // or not redirected 
+    return ((_isatty(_fileno(stdout))) ? TRUE : FALSE);
+  } else {
+    return FALSE;
+  }
 }
 
 #else
@@ -499,7 +504,7 @@ static UBENCH_INLINE FILE *ubench_fopen(const char *filename,
 #endif
 }
 
-// UBENCH_WEAK 
+// UBENCH_WEAK
 int ubench_main(int argc, const char *const argv[]);
 inline int ubench_main(int argc, const char *const argv[]) {
   ubench_uint64_t failed = 0;
@@ -512,24 +517,25 @@ inline int ubench_main(int argc, const char *const argv[]) {
   enum colours { RESET, GREEN, RED };
 
   // const int use_colours = UBENCH_COLOUR_OUTPUT();
-  static char *colours[] = {(char *)"\033[0m", (char *)"\033[32m", (char *)"\033[31m"};
+  static char *colours[] = {(char *)"\033[0m", (char *)"\033[32m",
+                            (char *)"\033[31m"};
 
-  if ( FALSE == UBENCH_COLOUR_OUTPUT()) {
-    static const char * no_colurs[] = { "", "", "" };
-        memcpy(colours, no_colurs, 3 * sizeof(char *) );
+  if (FALSE == UBENCH_COLOUR_OUTPUT()) {
+    static const char *no_colurs[] = {"", "", ""};
+    memcpy(colours, no_colurs, 3 * sizeof(char *));
   }
 
   static const char *const FOPEN_MODE = "w+";
-  // static const char *const FOPEN_MODE = "a+";
+// static const char *const FOPEN_MODE = "a+";
 
-  /* Informational switches */
-  #define  HELP_STR  "--help"  
-  #define  LIST_STR  "--list-benchmarks"  
-  /* Benchmark config switches */
-  #define  FILTER_STR  "--filter="  
-  #define  OUTPUT_STR  "--output="  
-  #define  CONFIDENCE_STR  "--confidence="  
-  #define  SLEN(S) ( sizeof(S) - 1)
+/* Informational switches */
+#define HELP_STR "--help"
+#define LIST_STR "--list-benchmarks"
+/* Benchmark config switches */
+#define FILTER_STR "--filter="
+#define OUTPUT_STR "--output="
+#define CONFIDENCE_STR "--confidence="
+#define SLEN(S) (sizeof(S) - 1)
 
   /* loop through all arguments looking for our options */
   for (index = 1; index < UBENCH_CAST(size_t, argc); index++) {
@@ -576,9 +582,9 @@ inline int ubench_main(int argc, const char *const argv[]) {
 
 #undef HELP_STR
 #undef LIST_STR
-#undef FILTER_STR 
-#undef OUTPUT_STR 
-#undef CONFIDENCE_STR 
+#undef FILTER_STR
+#undef OUTPUT_STR
+#undef CONFIDENCE_STR
 #undef SLEN
 
   for (index = 0; index < ubench_state.benchmarks_length; index++) {
@@ -603,15 +609,14 @@ inline int ubench_main(int argc, const char *const argv[]) {
   static const ubench_int64_t max_iterations = UBENCH_MAX_ITERATIONS;
   static const ubench_int64_t min_iterations = UBENCH_MIN_ITERATIONS;
 
-for (index = 0; index < ubench_state.benchmarks_length; index++) 
-{
+  for (index = 0; index < ubench_state.benchmarks_length; index++) {
     int result = 1;
     size_t mndex = 0;
     ubench_int64_t best_avg_ns = 0;
     double best_deviation = 0;
     double best_confidence = 101.0;
 
-  ubench_int64_t iterations = 10;
+    ubench_int64_t iterations = 10;
     ubench_int64_t ns[UBENCH_MAX_ITERATIONS] = {0};
 
 #undef UBENCH_MAX_ITERATIONS
