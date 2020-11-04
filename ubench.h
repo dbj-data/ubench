@@ -52,10 +52,6 @@
 
 #ifdef UBENCH_IS_WIN
 
-#if !(_WIN32_WINNT >= _WIN32_WINNT_WIN10)
-#error Windows build using UBENCH, requires /DWINVER=0x0A00 /D_WIN32_WINNT=0x0A00
-#endif
-
 /*
    Disable warning about not inlining 'inline' functions.
    TODO: We'll fix this later by not using fprintf within our macros, and

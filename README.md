@@ -1,24 +1,12 @@
 # DBJDBJ FORK
 
-## Intermediary measure 
+## Windows builds 
 
-Compiler command line must also contain this:
-```
-/DWINVER=0x0A00
-/D_WIN32_WINNT=0x0A00
-```
-> This is mandatory for Windows builds using ubench.h from this fork.
-
-Win cmd colurs are (realisticaly) supported for Windows 10 onwards. We made sure ubench.h builds require WIN10 or better. You will now see console colours only on WIN10. 
-
-But. The same exe if run on Win7 would again not show colours but escape codes mixed with text. The ulitmates solution is to check Windows version at runtime. That is on the roadmap.
+Win cmd VT100 colurs are (realisticaly) supported from Windows 10 onwards. You will see console colours only on WIN10 or better. 
 
 What could possibly go wrong? &trade; :wink:
 
 ## ⏱️ ubench.h
-
-[![Build status](https://ci.appveyor.com/api/projects/status/8x6h7ji9wpmh3rdd?svg=true)](https://ci.appveyor.com/project/sheredom/ubench-h)
-[![Build Status](https://travis-ci.org/sheredom/ubench.h.svg)](https://travis-ci.org/sheredom/ubench.h)
 
 A simple one header solution to benchmarking for C/C++.
 
@@ -26,7 +14,7 @@ A simple one header solution to benchmarking for C/C++.
 
 Just `#include "ubench.h"` in your code!
 
-The current supported compilers are gcc, clang and msvc.
+The current supported compilers are gcc, clang, msvc (aka cl) and clang-cl.
 
 The current supported platforms are Linux, macOS and Windows.
 
@@ -46,7 +34,9 @@ ubench.h supports some command line options:
 ## Design
 
 ubench.h is a single header library to enable all the fun of benchmarking in C
-and C++. The library has been designed to provide an output similar to Google's
+and C++. Windows builds do require `dbj_win_lib.h`, present in here.
+
+The library has been designed to provide an output similar to Google's
 googletest framework:
 
 ```
@@ -80,6 +70,25 @@ benchmark that does not meet the confidence interval cutoff) up to a maximum of
 500 samples. At least 10 samples are always done even for longer running tests
 to ensure some meaningful confidence interval can be computed.
 
+> That means you do not (need to) use loops in your benchmarks.
+
+Wrong benchmark example, inner loop:
+```cpp
+UBENCH( my_benchmarks, allocation ) {
+   for (int j = 0; j < 0xFFFF, ++j)  { 
+     int * ptr_ = (int*)malloc(0xFF) ;
+     free(ptr_);
+   }
+}
+```
+Proper benchmark example, no inner loop:
+```cpp
+UBENCH( my_benchmarks, allocation ) {
+   int * ptr_ = (int*)malloc(0xFF) ;
+     free(ptr_);
+}
+```
+
 ## UBENCH_MAIN
 
 In one C or C++ file, you must call the macro UBENCH_MAIN:
@@ -91,7 +100,7 @@ UBENCH_MAIN();
 This will call into ubench.h, instantiate all the benchmarks and run the
 benchmark framework.
 
-Alternatively, if you want to write your own main and call into ubench.h, you
+**Alternatively**, if you want to write your own main and call into ubench.h, you
 can instead, in one C or C++ file call:
 
 ```c
@@ -161,6 +170,36 @@ UBENCH_F(foo, strrchr) {
 Note that fixtures are not guaranteed to be constructed only once - but they are
 guaranteed to not impede on the collection of accurate metrics for the running
 of your benchmark.
+
+> Do not allocate huge stack space in your fixtures
+
+Internaly UBENCH creates your fixtures struct on stack. If it contains large array on stack, that will lead to very confusing bugs.
+
+Wrong fixture:
+```cpp
+// huge stack space array
+struct foo {
+  char data[128 * 1024 * 1024];
+};
+
+UBENCH_F_SETUP(foo) {
+  // UBENCH makes fixture instance on the stack here
+  // stack overflow is very likely
+}
+```
+Proper fixture , no stack array :
+```cpp
+struct foo {
+  char *data;
+};
+
+UBENCH_F_SETUP(foo) {
+  static const int size = 128 * 1024 * 1024;
+  ubench_fixture->data = (char *)malloc(size);
+}
+```
+
+NOTE: basically I do not use "fixtures". I simply use local structs or values to share the benchmark data between benchmarks.
 
 ## Testing Macros
 

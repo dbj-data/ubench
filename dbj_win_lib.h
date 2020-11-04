@@ -2,8 +2,12 @@
 #define DBJ_WIN_LIB_INC_
 // (c) 2020 by dbj@dbj.org -- LICENSE_DBJ -- https://dbj.org/license_dbj
 
+/*
+copied over here from dbj-fwk
+*/
+
 #ifndef _WIN32
-#error This is WIN32 header
+#error This is WIN32 header, treat it as such
 #endif // ! _WIN32
 
 #ifdef __STDC_ALLOC_LIB__
@@ -12,6 +16,8 @@
 #define _POSIX_C_SOURCE 200809L
 #endif
 
+#include <io.h> // _isatty
+#include <crtdbg.h>
 #include <errno.h>
 #undef DBJ_PERROR
 #define DBJ_PERROR (perror(__FILE__ " # " _CRT_STRINGIZE(__LINE__)))
@@ -22,7 +28,6 @@
 #define STRICT 1
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
-#include <winnt.h>
 
 #undef min
 #define min(x, y) ((x) < (y) ? (x) : (y))
@@ -30,28 +35,27 @@
 #undef max
 #define max(x, y) ((x) > (y) ? (x) : (y))
 
-// a minor ask: please compile on Windows 10
-#if !(_WIN32_WINNT >= _WIN32_WINNT_WIN10)
-#error Windows build using UBENCH, requires /DWINVER=0x0A00 /D_WIN32_WINNT=0x0A00
-#endif
-
 /// --------------------------------------------------------------------------------
+/* bool might require <stdbool.h> */
 #ifdef __cplusplus
 extern "C" {
 #endif
+/* isatty and _fileno are in io.h */
+inline bool is_stdout_redirected() {
+  return ((_isatty(_fileno(stdout))) ? true : false );
+}
+
+inline bool is_stderr_redirected() {
+  return ((_isatty(_fileno(stderr))) ? true : false );
+}
+
+inline bool is_stdin_redirected() {
+  return ((_isatty(_fileno(stdin))) ? true : false );
+}
 /// --------------------------------------------------------------------------------
 //
-// we emulate and return this, to the callers
+// we emulate _OSVERSIONINFOA and return osinfo_struct to the callers
 // reason is mainly, we do not like the *agrarian* notation
-//
-// typedef struct _OSVERSIONINFOA {
-//    DWORD size_info_;
-//    DWORD major;
-//    DWORD minor;
-//    DWORD build_num;
-//    DWORD platform_id;
-//    CHAR   csd_version[128];     // Maintenance string for PSS usage
-//} OSVERSIONINFOA, * POSVERSIONINFOA, * LPOSVERSIONINFOA;
 //
 typedef struct osinfo_struct {
   long size_info_;
@@ -62,33 +66,32 @@ typedef struct osinfo_struct {
   char csd_version[128]; // Maintenance string for PSS usage
 } osinfo, *osinfo_ptr;
 
-typedef LONG NTSTATUS; // , * PNTSTATUS{};
-#define DBJ_STATUS_SUCCESS (0x00000000)
-
-typedef NTSTATUS(WINAPI *get_version_fp)(osinfo_ptr);
-
 // actually the sure-fire way to obtain windows version
-inline osinfo get_win_version(void) {
-  HMODULE hMod = ::GetModuleHandleA("ntdll.dll");
+inline osinfo get_win_version(void) 
+{
+  typedef LONG NTSTATUS; // , * PNTSTATUS{};
+  typedef NTSTATUS(WINAPI * get_version_fp)(osinfo_ptr);
+
+  static HMODULE hMod = ::GetModuleHandleA("ntdll.dll");
   if (hMod) {
-    get_version_fp fxPtr =
+    static get_version_fp fxPtr =
         (get_version_fp)::GetProcAddress(hMod, "RtlGetVersion");
+
+    _ASSERTE(fxPtr != nullptr);
+
     if (fxPtr != nullptr) {
       osinfo osinfo_var_ = {0};
       osinfo_var_.size_info_ = sizeof(osinfo_var_);
-      if (DBJ_STATUS_SUCCESS == fxPtr(&osinfo_var_)) {
+      if ((0x00000000) == fxPtr(&osinfo_var_)) {
         return osinfo_var_;
       }
     }
   }
   static osinfo osinfo_empty_ = {0, 0, 0, 0, 0, {0}};
   return osinfo_empty_;
-}
+} // get_win_version
 
-#undef DBJ_STATUS_SUCCESS
-
-#define IS_OS_INFO_EMPTY(info_)                                                \
-  (0 ==  info_.major)
+#define IS_OS_INFO_EMPTY(info_) (0 == info_.major)
 
 /*
 return true if Windows version is greater than or equal to the specified number
@@ -122,29 +125,24 @@ inline bool is_win_ver_or_greater(WORD major_ver, WORD minor_ver,
 
 #undef IS_OS_INFO_EMPTY
 
-/*
-current machine may or may not  be on WIN10 where VT100 ESC codes are
-*supposed to be* on by default, Sigh ...
-
-Required WIN10 build number is 10586 or greater
-to dance with exact win version please proceed here:
-https://docs.microsoft.com/en-us/windows/win32/sysinfo/verifying-the-system-version
-but please be aware that is semi-officialy abandoned method. it may or may not
-work.
-
-instead you can use the method bellow. if it returns false no VT100 colours.
-WARNING: this will not exit the app *only* if app is started in WIN32 CONSOLE
-Example: if running from git bash on win this will exit the app
-if app output is redirected to file, this will also fail.
-at runtime.
-*/
-
 #ifndef ENABLE_VIRTUAL_TERMINAL_PROCESSING
 #error ENABLE_VIRTUAL_TERMINAL_PROCESSING not found? Try Visual Studio solution re-targeting to the latest SDK.
 #endif
 
 /*
-If your win10 terminal is not showing colors use this
+current machine may or may not  be on WIN10 where VT100 ESC codes are
+*supposed to be* on by default, Sigh ...
+
+You can use the run-time method bellow. if it returns false no VT100 colours.
+WARNING: this will not exit the app *only* if app is started in WIN32 CONSOLE
+Example: if running from git bash on win this will exit the app
+if app output is redirected to file, this will also fail.
+at runtime.
+
+If the Windows version is equal to or greater than: 10.0.14393
+then ENABLE_VIRTUAL_TERMINAL_PROCESSING is supported.
+
+If your win10 terminal is not showing colours use this
 it will not exit the app *only* if app is started in WIN32 CONSOLE
 Example: if running from git bash on win this will exit the app
 if app output is redirected to file, this will also fail.
