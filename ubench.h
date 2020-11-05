@@ -248,7 +248,7 @@ inline BOOL UBENCH_COLOUR_OUTPUT(void) {
   // supported.
   if (is_win_ver_or_greater(10,0,14393)) {
       // if stdout is active 
-      // or not redirected 
+      // and not redirected 
     return ((_isatty(_fileno(stdout))) ? TRUE : FALSE);
   } else {
     return FALSE;
