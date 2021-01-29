@@ -255,10 +255,14 @@ inline BOOL UBENCH_COLOUR_OUTPUT(void) {
   }
 }
 
-#else
+#else // ! windows 
 #include <unistd.h>
+#ifndef UBENCH_ON_GODBOLT
 #define UBENCH_COLOUR_OUTPUT() (isatty(STDOUT_FILENO))
-#endif
+#else  // ! UBENCH_ON_GODBOLT
+#define UBENCH_COLOUR_OUTPUT() (1 == 1)
+#endif // ! UBENCH_ON_GODBOLT
+#endif // ! windows
 
 static UBENCH_INLINE ubench_int64_t ubench_ns(void) {
 #ifdef UBENCH_IS_WIN
