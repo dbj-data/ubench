@@ -30,8 +30,8 @@
    For more information, please refer to <http://unlicense.org/>
 */
 
-#ifndef SHEREDOM_UBENCH_H_INCLUDED
-#define SHEREDOM_UBENCH_H_INCLUDED
+#ifndef DBJ_SHEREDOM_UBENCH_H_INCLUDED
+#define DBJ_SHEREDOM_UBENCH_H_INCLUDED
 
 #include <stdbool.h>
 
@@ -811,4 +811,4 @@ UBENCH_C_FUNC UBENCH_NOINLINE void ubench_do_nothing(void *const);
     return ubench_main(argc, argv);                                            \
   }
 
-#endif /* SHEREDOM_UBENCH_H_INCLUDED */
+#endif /* DBJ_SHEREDOM_UBENCH_H_INCLUDED */
